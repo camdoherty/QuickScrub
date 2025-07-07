@@ -4,7 +4,10 @@ from .base import Recognizer, Finding
 
 class PhoneRecognizer(Recognizer):
     PHONE_REGEX = re.compile(r'\b\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b')
-    def __init__(self): super().__init__(name="Phone Number", tag="PHONE")
+
+    def __init__(self):
+        super().__init__(name="Phone Number", tag="PHONE")
+
     def analyze(self, text: str) -> List[Finding]:
         findings = []
         for match in self.PHONE_REGEX.finditer(text):

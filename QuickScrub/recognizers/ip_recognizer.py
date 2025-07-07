@@ -4,7 +4,10 @@ from .base import Recognizer, Finding
 
 class IpRecognizer(Recognizer):
     IP_REGEX = re.compile(r'\b(?:\d{1,3}\.){3}\d{1,3}\b')
-    def __init__(self): super().__init__(name="IP Address", tag="IP_ADDRESS")
+
+    def __init__(self):
+        super().__init__(name="IP Address", tag="IP_ADDRESS")
+
     def analyze(self, text: str) -> List[Finding]:
         findings = []
         for match in self.IP_REGEX.finditer(text):

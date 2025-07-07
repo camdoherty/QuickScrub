@@ -1,3 +1,5 @@
+# FILE: pyproject.toml
+
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
@@ -12,7 +14,7 @@ dependencies = [
     "fastapi>=0.100.0",
     "uvicorn[standard]>=0.22.0",
     "pydantic>=2.0",
-    "python-multipart>=0.0.9"
+    "python-multipart>=0.0.9",
 ]
 
 [project.optional-dependencies]
@@ -20,3 +22,7 @@ dev = [
     "pytest",
     "requests",
 ]
+
+# Explicitly define the package to prevent auto-discovery errors.
+[tool.setuptools.packages.find]
+include = ["QuickScrub", "QuickScrub.*"]
