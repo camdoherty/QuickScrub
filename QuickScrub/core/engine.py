@@ -27,17 +27,52 @@ class ScrubberEngine:
         return resolved
 
     def _scrub_text(self, text: str, findings: List[Finding]) -> (str, List[Dict[str, str]]):
+        """
+        Replaces PII in text with consistent placeholders and generates a unique legend.
+        """
         scrubbed_text = text
-        legend: List[Dict[str, str]] = []
-        placeholder_counts: Dict[str, int] = {}
+        
+        # --- MODIFIED LOGIC START ---
 
-        for finding in reversed(findings):
+        # Keeps track of the next available index for a given PII type (e.g., IP_ADDRESS -> 1)
+        placeholder_counts: Dict[str, int] = {}
+        # Maps a unique value to its generated placeholder (e.g., "192.168.1.1" -> "[IP_ADDRESS_1]")
+        value_to_placeholder_map: Dict[str, str] = {}
+        # Stores the unique legend items in the order they are first seen.
+        legend_map: Dict[str, Dict[str, str]] = {}
+
+        # First pass: Generate placeholders and legend for unique values
+        # We iterate through the findings in their original order to make the legend sequential.
+        for finding in sorted(findings, key=lambda f: f.start):
+            # If we've already created a placeholder for this value, skip it.
+            if finding.value in value_to_placeholder_map:
+                continue
+
             pii_type = finding.type
+            
+            # Get the next available count for this type and increment it
             count = placeholder_counts.get(pii_type, 0) + 1
             placeholder_counts[pii_type] = count
+            
             placeholder = f"[{pii_type}_{count}]"
-            end_index = finding.start + len(finding.value)
-            scrubbed_text = scrubbed_text[:finding.start] + placeholder + scrubbed_text[end_index:]
-            legend.insert(0, {"original": finding.value, "mock": placeholder, "type": pii_type})
+            
+            # Store the mappings
+            value_to_placeholder_map[finding.value] = placeholder
+            legend_map[placeholder] = {
+                "original": finding.value,
+                "mock": placeholder,
+                "type": pii_type
+            }
+
+        # Second pass: Replace text using the consistent placeholders
+        # We iterate backwards to preserve character indices during replacement.
+        for finding in reversed(findings):
+            placeholder = value_to_placeholder_map[finding.value]
+            scrubbed_text = scrubbed_text[:finding.start] + placeholder + scrubbed_text[finding.end:]
+
+        # Create the final legend from our map, sorted by the placeholder number
+        legend = sorted(legend_map.values(), key=lambda item: int(item['mock'].split('_')[-1][:-1]))
+
+        # --- MODIFIED LOGIC END ---
 
         return scrubbed_text, legend
