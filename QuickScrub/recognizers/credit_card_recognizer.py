@@ -3,13 +3,22 @@ from typing import List
 from .base import Recognizer, Finding
 
 class CreditCardRecognizer(Recognizer):
-    CC_REGEX = re.compile(r'\b(?:\d[ -]?){12,18}\d\b')
-    def __init__(self): super().__init__(name="Credit Card", tag="CREDIT_CARD")
-    def _is_luhn_valid(self, n: str) -> bool:
+    # This regex is more general. It finds sequences of 13 to 19 digits that may
+    # be interrupted by single spaces or dashes, but ensures it starts and ends
+    # with a digit. This is a common pattern.
+    CC_REGEX = re.compile(r'\b\d(?:[ -]?\d){12,18}\b')
+
+    def __init__(self):
+        super().__init__(name="Credit Card", tag="CREDIT_CARD")
+
+    def _is_luhn_valid(self, number: str) -> bool:
         try:
-            d = [int(x) for x in reversed(n)]; c = sum(d[::2]) + sum(sum(divmod(i * 2, 10)) for i in d[1::2])
-            return c % 10 == 0
-        except (ValueError, TypeError): return False
+            digits = [int(d) for d in reversed(number)]
+            checksum = sum(digits[::2]) + sum(sum(divmod(d * 2, 10)) for d in digits[1::2])
+            return checksum % 10 == 0
+        except (ValueError, TypeError):
+            return False
+
     def analyze(self, text: str) -> List[Finding]:
         findings = []
         for match in self.CC_REGEX.finditer(text):
