@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QuickScrub V1</title>
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <h1>QuickScrub V1</h1>
+        <p>A local, private PII Scrubber</p>
+      </header>
+      <main>
+        <div class="container">
+          <div class="input-section">
+            <h2>Input Text</h2>
+            <textarea id="inputText" placeholder="Paste your text here..."></textarea>
+
+            <h2>PII Types to Scrub</h2>
+            <div id="pii-types-checkboxes" class="checkbox-grid">
+              <!-- Checkboxes will be dynamically inserted here -->
+            </div>
+
+            <h2>Allow List (optional)</h2>
+            <textarea id="allowList" placeholder="Enter one value per line to ignore (e.g., 127.0.0.1)"></textarea>
+
+            <button id="scrubButton">Scrub Text</button>
+          </div>
+
+          <div class="output-section">
+            <h2>Scrubbed Text</h2>
+            <div class="output-box-container">
+                <pre id="scrubbedText" class="output-box"></pre>
+                <button class="copy-button" id="copyScrubbedText">Copy</button>
+            </div>
+
+            <h2>Legend</h2>
+            <div class="output-box-container">
+                <div id="legend" class="output-box"></div>
+                <button class="copy-button" id="copyLegend">Copy</button>
+            </div>
+          </div>
+        </div>
+      </main>
+      <footer>
+        <p>Powered by FastAPI & Vanilla JS</p>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
