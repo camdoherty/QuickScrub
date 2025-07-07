@@ -20,7 +20,7 @@ prompt_yes_no() {
 # --- 1. Stop Existing Server Instances ---
 echo "--- Step 1: Stopping existing server instances ---"
 pkill -f "uvicorn QuickScrub.main:app" || echo "No running Uvicorn backend server found."
-pkill -f "vite" || echo "No running Vite frontend server found."
+pkill -f "vite"            || echo "No running Vite frontend server found."
 echo "All known server processes stopped."
 echo ""
 
@@ -41,58 +41,40 @@ if ! prompt_yes_no "Attempt to restart development servers?"; then
     exit 0
 fi
 
-# --- Helper function for opening a new terminal ---
-# Tries common terminal emulators on Linux and provides instructions for others.
-open_in_new_terminal() {
-    local command_to_run="$1"
-    local failed=0
-
-    if command -v gnome-terminal &> /dev/null; then
-        gnome-terminal -- bash -c "${command_to_run}; exec bash" &
-    elif command -v konsole &> /dev/null; then
-        konsole -e bash -c "${command_to_run}; exec bash" &
-    elif command -v xfce4-terminal &> /dev/null; then
-        xfce4-terminal -e "bash -c '${command_to_run}; exec bash'" &
-    elif [[ "$OSTYPE" == "darwin"* ]]; then # macOS
-        osascript -e "tell app \"Terminal\" to do script \"${command_to_run}\""
-    else
-        failed=1
-    fi
-    
-    if [ $failed -eq 1 ]; then
-        echo ""
-        echo "--------------------------------------------------------"
-        echo "⚠️  Could not automatically open a new terminal."
-        echo "Please open a new terminal manually and run:"
-        echo "   ${command_to_run}"
-        echo "--------------------------------------------------------"
-    fi
-}
-
-# --- Start Backend ---
+# --- Start Backend (in background) ---
 if [ ! -d "venv" ]; then
     echo "❌ Error: Python virtual environment 'venv' not found."
     echo "Please run 'python3 -m venv venv' and 'pip install -e .[dev]' first."
     exit 1
 fi
-backend_cmd="source venv/bin/activate; uvicorn QuickScrub.main:app --reload"
-echo "Starting backend server..."
-open_in_new_terminal "$backend_cmd"
-sleep 2 # Give it a moment to start
+
+echo "Starting backend server (in background)..."
+# activate venv in this shell
+source venv/bin/activate
+# launch uvicorn in the background
+uvicorn QuickScrub.main:app --reload &
+BACKEND_PID=$!
+sleep 2  # give it a moment to come up
 
 # --- Start Frontend ---
 if [ ! -d "frontend/node_modules" ]; then
     echo "Warning: 'node_modules' not found in frontend."
     if prompt_yes_no "Run 'npm install' first?"; then
-        (pushd frontend && npm install && popd)
+        (cd frontend && npm install)
     else
         echo "Skipping frontend server start."
+        # optional: kill backend if you want
+        # kill $BACKEND_PID
         exit 1
     fi
 fi
-frontend_cmd="cd frontend; npm run dev"
-echo "Starting frontend server..."
-open_in_new_terminal "$frontend_cmd"
 
-echo ""
-echo "--- Process finished ---"
+echo "Starting frontend server..."
+cd frontend
+npm run dev
+
+# When npm run dev exits (e.g. you Ctrl+C), forward the signal to the backend
+trap "echo; echo 'Stopping backend...'; kill $BACKEND_PID; exit" INT TERM
+
+# wait on backend if npm dev ever exits cleanly
+wait $BACKEND_PID
