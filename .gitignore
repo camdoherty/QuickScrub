@@ -1,2 +1,6 @@
 codebase-txt.sh
 codebase-*
+venv
+frontend/node_modules
+QuickScrub.egg-info
+*__pycache__
