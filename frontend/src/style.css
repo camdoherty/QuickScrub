@@ -47,13 +47,18 @@ header {
   grid-template-columns: 1fr;
   gap: 2rem;
   text-align: left;
-  align-items: start;
+  align-items: stretch;
 }
 
 /* --- KEY CHANGE FOR HORIZONTAL FIX --- */
 /* Apply min-width: 0 to grid children to allow them to shrink and wrap content */
 .input-section, .output-section {
     min-width: 0;
+}
+
+.output-section {
+    display: flex;
+    flex-direction: column;
 }
 
 @media (min-width: 768px) {
@@ -82,7 +87,6 @@ textarea, .output-box {
   background-color: var(--color-background-soft);
   color: var(--color-text);
   font-family: Consolas, "Courier New", monospace;
-  height: 250px;
   resize: vertical;
   overflow: auto;
 
@@ -92,13 +96,20 @@ textarea, .output-box {
   word-break: break-word; /* Use break-word for more aggressive breaking */
 }
 
+#inputText {
+  white-space: pre;
+  overflow-x: auto;
+  min-height: 250px;
+}
+
+#scrubbedText {
+  height: 250px;
+}
+
 #allowList {
   height: 80px;
 }
 
-#legend {
-    min-height: 250px;
-}
 
 .checkbox-grid {
   display: grid;
@@ -140,6 +151,12 @@ textarea, .output-box {
     min-width: 0; 
 }
 
+/* Target the container for the legend box to make it grow */
+.output-section .output-box-container:last-child {
+    flex-grow: 1;
+    display: flex; /* Allow the legend inside to grow */
+}
+
 .output-box:empty::before {
   content: attr(data-placeholder);
   color: var(--color-text-muted);
@@ -156,6 +173,9 @@ textarea, .output-box {
     grid-template-columns: 120px 150px 1fr;
     gap: 0.5rem;
     padding: 1rem;
+    flex-grow: 1; /* Make the legend box fill its container */
+    align-content: start; /* Prevent grid rows from stretching */
+    overflow-y: auto; /* Ensure vertical scrolling */
 }
 
 #legend > div.header {
