@@ -1,5 +1,3 @@
-# QuickScrub: A Local, Private, and Modular PII Scrubber
-
 <p align="center">
   <img src="screenshot.png" alt="A screenshot of the QuickScrub web interface, showing input and output text areas for scrubbing personally identifiable information." width="auto">
 </p>
