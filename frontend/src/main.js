@@ -1,9 +1,16 @@
 import './style.css';
 
 const PII_TYPES = [
-  { tag: 'IP_ADDRESS', label: 'IP Address' }, { tag: 'EMAIL', label: 'Email' },
-  { tag: 'PHONE', label: 'Phone Number' }, { tag: 'CREDIT_CARD', label: 'Credit Card' },
+  { tag: 'IP_ADDRESS', label: 'IP Address (v4)' }, 
+  { tag: 'EMAIL', label: 'Email' },
+  { tag: 'PHONE', label: 'Phone Number' }, 
+  { tag: 'CREDIT_CARD', label: 'Credit Card' },
   { tag: 'MAC_ADDRESS', label: 'MAC Address' },
+  // --- START: New Types ---
+  { tag: 'IPV6_ADDRESS', label: 'IP Address (v6)' },
+  { tag: 'SENSITIVE_URL', label: 'Sensitive URL' },
+  { tag: 'SECRET', label: 'API Keys / Secrets' },
+  // --- END: New Types ---
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -87,6 +94,7 @@ function renderLegend(legendData) {
 
 function getLegendTextForClipboard(element) {
   const children = Array.from(element.children);
+  if (children.length === 0) return '';
   let text = '';
   const headers = children.slice(0, 3).map(c => c.textContent);
   text += headers.join('\t') + '\n';

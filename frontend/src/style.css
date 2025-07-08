@@ -148,8 +148,10 @@ h2 {
 /* --- Checkboxes & Buttons --- */
 .checkbox-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 0.75rem;
+  /* Increased min-width to prevent wrapping of long labels */
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  /* Reduced row-gap to decrease vertical space */
+  gap: 0.25rem 0.75rem;
 }
 .checkbox-grid > div {
   display: flex;
