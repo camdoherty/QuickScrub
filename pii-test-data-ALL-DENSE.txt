@@ -1,0 +1,59 @@
+PII Test Data - Direct List Format
+
+IP Address (v4)
+IPv4: 192.168.1.101
+IPv4: 10.0.0.25
+IPv4: 172.16.254.1
+IPv4: 8.8.8.8
+
+Email
+Email: john.doe@example.com
+Email: jane.smith@sample.org
+Email: support@mydomain.org
+Email: user-123@sub.domain.co.uk
+
+Phone Number
+Phone: (555) 123-4567
+Phone: +1-555-987-6543
+Phone: 555.867.5309
+Phone: +44 20 7946 0958
+Phone: +61-3-9123-4567
+
+Credit Card
+Credit Card (Visa): 4111111111111111
+Credit Card (Amex): 3400-0000-0000-009
+Credit Card (Discover): 6011 0000 0000 0004
+Credit Card (Mastercard): 5500000000000004
+
+MAC Address
+MAC: 00:1A:2B:3C:4D:5E
+MAC: 00-1B-44-11-3A-B7
+MAC: DE:AD:BE:EF:FE:ED
+MAC (Cisco-style): 0123.4567.89ab
+
+IP Address (v6)
+IPv6: 2001:0db8:85a3:0000:0000:8a2e:0370:7334
+IPv6 (Compressed): fe80::f2de:f1ff:fe3f:307e
+IPv6 (Double Colon): 2001:4860:4860::8888
+IPv6 (Localhost): ::1
+
+API Keys / Secrets
+Secret (Stripe-like): sk_live_51MxxxxxxxxxxxxxxxxxxxxxxU3B
+Secret (AWS Key ID): AKIAIOSFODNN7EXAMPLE
+Secret (Bearer Token): bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+Secret (Generic High Entropy): 9d8e7f6g5h4j3k2l1m0n9o8p7q6r5s4t3u2v1w
+Secret (GitHub Token): ghp_1234567890abcdef1234567890abcdef
+
+Sensitive URL
+URL: https://api.vendor.com/data?apikey=xyz987&user=jane.smith@sample.org
+URL: https://staging.server.com/login?token=abc123efg456
+URL: www.api.com/v2/user?session_id=9d8e7f6g5h4j3k2l1m0n9o8p7q6r5s4t
+False Positives (Should NOT be detected)
+
+Not a CC: 1234-5678-1234-5670
+Not a Phone: 123-456-789
+Not a MAC: GG-HH-II-JJ-KK-LL
+Not an IPv4: 300.300.300.300
+Not a Secret: this_is_a_long_but_low_entropy_string
+Not a Sensitive URL: https://google.com/search?q=example
+Not an IPv6: 2001:db8::g

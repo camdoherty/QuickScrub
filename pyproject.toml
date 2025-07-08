@@ -16,6 +16,7 @@ dependencies = [
     "pydantic>=2.0",
     "python-multipart>=0.0.9",
     "phonenumbers>=8.13.0",
+    "typer[all]>=0.9.0",
 ]
 
 [project.optional-dependencies]
@@ -27,3 +28,6 @@ dev = [
 # Explicitly define the package to prevent auto-discovery errors.
 [tool.setuptools.packages.find]
 include = ["QuickScrub", "QuickScrub.*"]
+
+[project.scripts]
+quickscrub = "QuickScrub.cli:app"

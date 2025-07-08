@@ -1,51 +1,40 @@
+# FILE: QuickScrub/recognizers/ipv6_recognizer.py
+
 import re
 import ipaddress
 from typing import List
 from .base import Recognizer, Finding
 
-
 class Ipv6Recognizer(Recognizer):
-    """Recognizes IPv6 addresses using regex for candidate detection and the 'ipaddress' module for validation."""
-
-    # Regex updated to optionally handle a backslash before colons: (?:\\?:)
-    IPV6_REGEX = re.compile(r"""
-        \b (?:
-            (?: [0-9a-fA-F]{1,4} (?:\\?:) ){7} [0-9a-fA-F]{1,4}
-    |
-            (?: [0-9a-fA-F]{1,4} (?:\\?:) ){1,7} (?:\\?:)
-   |
-            (?: [0-9a-fA-F]{1,4} (?:\\?:) ){1,6} (?:\\?:) [0-9a-fA-F]{1,4}
-   |
-            (?: [0-9a-fA-F]{1,4} (?:\\?:) ){1,5} (?: (?:\\?:) [0-9a-fA-F]{1,4} ){1,2} |
-            (?: [0-9a-fA-F]{1,4} (?:\\?:) ){1,4} (?: (?:\\?:) [0-9a-fA-F]{1,4} ){1,3} |
-            (?: [0-9a-fA-F]{1,4} (?:\\?:) ){1,3} (?: (?:\\?:) [0-9a-fA-F]{1,4} ){1,4} |
-            (?: [0-9a-fA-F]{1,4} (?:\\?:) ){1,2} (?: (?:\\?:) [0-9a-fA-F]{1,4} ){1,5} |
-            [0-9a-fA-F]{1,4} (?:\\?:) (?: (?: (?:\\?:) [0-9a-fA-F]{1,4} ){1,6} )     |
-            (?:\\?:) (?: (?: (?:\\?:) [0-9a-fA-F]{1,4} ){1,7} | (?:\\?:) )
-      |
-            fe80 (?:\\?:) (?: (?:\\?:) [0-9a-fA-F]{0,4} ){0,4} % [0-9a-zA-Z]{1,}     |
-            (?:\\?:){2} (?: ffff (?: (?:\\?:) 0{1,4} )? (?:\\?:) )?
-    |
-            (?: \d{1,3} \. ){3} \d{1,3}                                       |
-            (?: [0-9a-fA-F]{1,4} (?:\\?:) ){1,4} (?:\\?:)
-  |
-            (?: \d{1,3} \. ){3} \d{1,3}
-        ) \b
-    """, re.VERBOSE | re.IGNORECASE)
+    """
+    Recognizes IPv6 addresses by finding potential candidates with a simple regex
+    and then using the robust 'ipaddress' module for validation.
+    """
+    # This regex is intentionally broad. It finds sequences of characters that
+    # could plausibly be an IPv6 address, including colons and hex characters.
+    # The goal is to cast a wide net and let the ipaddress library do the real work.
+    IPV6_CANDIDATE_REGEX = re.compile(r'\b([0-9a-fA-F:]+:+[0-9a-fA-F:]+)\b')
 
     def __init__(self):
         super().__init__(name="IPv6 Address", tag="IPV6_ADDRESS")
 
     def analyze(self, text: str) -> List[Finding]:
         findings = []
-        for match in self.IPV6_REGEX.finditer(text):
-            # Clean the value of escape characters before validation
-            potential_ip = match.group(0).replace('\\', '')
+        for match in self.IPV6_CANDIDATE_REGEX.finditer(text):
+            potential_ip = match.group(0)
             try:
+                # The ipaddress module is the source of truth for validation.
                 addr = ipaddress.ip_address(potential_ip)
+                # We only care about IPv6 addresses in this recognizer.
                 if addr.version == 6:
-                    # Return the original, un-cleaned value in the Finding
-                    findings.append(Finding(match.start(), match.end(), match.group(0), self.tag, self.name))
+                    findings.append(Finding(
+                        start=match.start(),
+                        end=match.end(),
+                        value=potential_ip,
+                        type=self.tag,
+                        recognizer_name=self.name
+                    ))
             except ValueError:
+                # This is expected for any candidate that isn't a valid IP address.
                 continue
         return findings

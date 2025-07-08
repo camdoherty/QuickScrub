@@ -37,6 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
     button.addEventListener('click', () => handleCopy(button));
   });
 
+  document.getElementById('downloadSummaryButton').addEventListener('click', handleDownload);
+
   // Synchronized Scrolling
   const scrubbedTextEl = document.getElementById('scrubbedText');
   let activeScroller = null;
@@ -57,11 +59,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function handleScrub() {
-  const btn = document.getElementById('scrubButton'), textEl = document.getElementById('scrubbedText'), legendEl = document.getElementById('legend');
+  const btn = document.getElementById('scrubButton'), textEl = document.getElementById('scrubbedText'), legendEl = document.getElementById('legend'), downloadBtn = document.getElementById('downloadSummaryButton');
   const selectedTypes = PII_TYPES.filter(t => document.getElementById(t.tag).checked).map(t => t.tag);
   if (!document.getElementById('inputText').value || selectedTypes.length === 0) return alert('Input text and at least one PII type are required.');
 
   btn.disabled = true; btn.textContent = 'Scrubbing...';
+  downloadBtn.disabled = true;
   textEl.textContent = ''; legendEl.innerHTML = '';
 
   try {
@@ -75,6 +78,9 @@ async function handleScrub() {
     if (!res.ok) throw new Error((await res.json()).detail || `HTTP error! status: ${res.status}`);
     const data = await res.json();
     textEl.textContent = data.scrubbed_text; renderLegend(data.legend);
+    if (data.scrubbed_text) {
+      downloadBtn.disabled = false;
+    }
   } catch (error) {
     alert(`An error occurred: ${error.message}`);
   } finally {
@@ -120,4 +126,67 @@ function handleCopy(button) {
       }, 2000); // Revert back after 2 seconds
     }).catch(err => console.error('Could not copy text: ', err));
   }
+}
+
+function handleDownload() {
+  const inputText = document.getElementById('inputText').value;
+  const scrubbedText = document.getElementById('scrubbedText').textContent;
+  const legendEl = document.getElementById('legend');
+
+  if (!scrubbedText) {
+    alert('Scrubbed text is empty. Nothing to download.');
+    return;
+  }
+
+  // 1. Get Selected PII Types
+  const selectedPiiTypes = PII_TYPES
+    .filter(t => document.getElementById(t.tag).checked)
+    .map(t => `- ${t.label}`)
+    .join('\n');
+
+  // 2. Format Legend as a Markdown Table
+  const legendChildren = Array.from(legendEl.children);
+  let legendTable = '| Type | Mock | Original |\n|------|------|----------|\n';
+  if (legendChildren.length > 3) {
+    const rows = legendChildren.slice(3);
+    for (let i = 0; i < rows.length; i += 3) {
+      const rowItems = rows.slice(i, i + 3).map(c => c.textContent.replace(/\|/g, '\\|')); // Escape pipes in content
+      legendTable += `| ${rowItems.join(' | ')} |\n`;
+    }
+  }
+
+  // 3. Assemble the full markdown content
+  const markdownContent = `
+# Input Text:
+\`\`\`
+${inputText}
+\`\`\`
+
+# Selected PII Types:
+${selectedPiiTypes}
+
+# Scrubbed Text:
+\`\`\`
+${scrubbedText}
+\`\`\`
+
+# Legend
+${legendTable}
+  `.trim();
+
+  // 4. Create and trigger download
+  const blob = new Blob([markdownContent], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  
+  const now = new Date();
+  const shortDate = now.toISOString().slice(0, 10);
+  const time = now.toTimeString().slice(0, 8).replace(/:/g, '-');
+  a.download = `${shortDate}_${time}_scrub.md`;
+  
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }

@@ -26,19 +26,16 @@ class ScrubberEngine:
         if not sorted_findings:
             return resolved
 
-        last_accepted_finding = sorted_findings[0]
-        for current_finding in sorted_findings[1:]:
-            # If the current finding starts before the last one has ended, it's either
-            # overlapping or fully nested. Because we sorted longest-first, we can
-            # safely discard it.
-            if current_finding.start < last_accepted_finding.end:
-                continue
-
-            resolved.append(current_finding)
-            last_accepted_finding = current_finding
-
-        # Add the very first finding to the list, as the loop starts from the second item.
-        resolved.insert(0, sorted_findings[0])
+        # Use a variable to track the end of the last accepted finding.
+        last_end = -1
+        for finding in sorted_findings:
+            # If the current finding starts after the last one ended, it's safe to add.
+            if finding.start >= last_end:
+                resolved.append(finding)
+                last_end = finding.end
+            # If it starts before the last one ended, it's an overlap. Because we sorted
+            # by longest-first, we can be sure this finding is either fully contained
+            # or a shorter, less-preferred overlap, so we discard it.
 
         return resolved
 

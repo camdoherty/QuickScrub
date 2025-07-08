@@ -142,7 +142,7 @@ h2 {
 
 /* The legend box now has a fixed height */
 #legend {
-  height: 307px;
+  height: 257px;
 }
 
 /* --- Checkboxes & Buttons --- */
@@ -175,6 +175,28 @@ h2 {
   background-color: var(--color-accent-hover);
 }
 #scrubButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+#downloadSummaryButton {
+  margin-top: var(--spacing-unit);
+  padding: 0.8em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background-color: var(--color-accent);
+  color: #ffffff;
+  transition: background-color 0.25s, opacity 0.25s;
+}
+
+#downloadSummaryButton:hover:not(:disabled) {
+  background-color: var(--color-accent-hover);
+}
+
+#downloadSummaryButton:disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }

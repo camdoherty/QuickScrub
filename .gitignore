@@ -4,3 +4,4 @@ venv
 frontend/node_modules
 QuickScrub.egg-info
 *__pycache__
+QuickScrub/recognizers/delete

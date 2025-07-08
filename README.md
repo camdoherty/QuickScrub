@@ -182,6 +182,47 @@ QuickScrub/
 └── README.md               # You are here!
 ```
 
+### Command-Line Usage (CLI)
+
+QuickScrub can also be used directly from your terminal, making it perfect for scripting and automated workflows.
+
+After installing the project (`pip install -e .`), the `quickscrub` command will be available.
+
+**Commands:**
+
+-   `quickscrub scrub`: The main command to scrub text.
+-   `quickscrub types`: Lists all available PII types.
+
+**Usage Examples:**
+
+1.  **Scrub text piped from a file:**
+    ```bash
+    cat sensitive_report.log | quickscrub
+    ```
+
+2.  **Scrub specific PII types:**
+    ```bash
+    cat sensitive_report.log | quickscrub --type EMAIL --type IP_ADDRESS
+    ```
+
+3.  **Scrub text from a direct argument:**
+    ```bash
+    quickscrub "My IP is 192.168.1.50 and my email is test@dev.com"
+    ```
+
+4.  **Use an allow list to ignore certain values:**
+    Create a file named `ignore.txt` with `192.168.1.50` inside, then run:
+    ```bash
+    quickscrub "My IP is 192.168.1.50" --allow-list ignore.txt
+    ```
+
+5.  **Get structured JSON output with a legend:**
+    ```bash
+    cat report.log | quickscrub --json
+    ```
+
+To see all options, run `quickscrub scrub --help`.
+
 ## 📜 License
 
 This project is licensed under the MIT License. See the LICENSE file for details.
