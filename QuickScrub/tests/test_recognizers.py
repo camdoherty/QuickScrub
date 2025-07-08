@@ -1,7 +1,7 @@
 import unittest
 from ..recognizers.ip_recognizer import IpRecognizer
 from ..recognizers.email_recognizer import EmailRecognizer
-from ..recognizers.mac_recognizer import MacAddressRecognizer
+from ..recognizers.mac_address_recognizer import MacAddressRecognizer
 from ..recognizers.phone_recognizer import PhoneRecognizer
 from ..recognizers.credit_card_recognizer import CreditCardRecognizer
 

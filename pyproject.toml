@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "QuickScrub"
-version = "1.0.0"
+version = "1.1.0"
 description = "A local, modular PII scrubber with a web UI."
 readme = "README.md"
 requires-python = ">=3.8"
@@ -15,6 +15,7 @@ dependencies = [
     "uvicorn[standard]>=0.22.0",
     "pydantic>=2.0",
     "python-multipart>=0.0.9",
+    "phonenumbers>=8.13.0",
 ]
 
 [project.optional-dependencies]
