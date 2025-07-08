@@ -1,72 +1,10 @@
-### **Instructions for Codex/ChatGPT**
+# Implementation instructions & updated code:
 
-Please apply the following corrections to the codebase.
+Follow these steps to implement all the fixes.
 
-#### **1. (CRITICAL) Update `QuickScrub/tests/test_recognizers.py`**
+#### Step 1: Modify `pyproject.toml`
 
-*   **Action:** Overwrite the file `QuickScrub/tests/test_recognizers.py` with the following content. This version adds the missing tests for Phone and MAC recognizers and improves the readability of all tests.
-
-```python
-# FILE: QuickScrub/tests/test_recognizers.py
-
-import unittest
-from ..recognizers.ip_recognizer import IpRecognizer
-from ..recognizers.email_recognizer import EmailRecognizer
-from ..recognizers.mac_recognizer import MacAddressRecognizer
-from ..recognizers.phone_recognizer import PhoneRecognizer
-from ..recognizers.credit_card_recognizer import CreditCardRecognizer
-
-class TestRecognizers(unittest.TestCase):
-    """
-    Unit tests for all PII recognizers.
-    """
-    def test_ip_recognizer(self):
-        recognizer = IpRecognizer()
-        findings = recognizer.analyze("Valid IPs: 192.168.1.1 and invalid: 300.0.0.1")
-        self.assertEqual(len(findings), 1)
-        self.assertEqual(findings[0].value, "192.168.1.1")
-
-    def test_email_recognizer(self):
-        recognizer = EmailRecognizer()
-        findings = recognizer.analyze("Contact test@example.com for info.")
-        self.assertEqual(len(findings), 1)
-        self.assertEqual(findings[0].value, "test@example.com")
-
-    def test_mac_address_recognizer(self):
-        recognizer = MacAddressRecognizer()
-        text = "MACs are 00-1A-2B-3C-4D-5E and 00:1A:2B:3C:4D:5F."
-        findings = recognizer.analyze(text)
-        self.assertEqual(len(findings), 2)
-        self.assertEqual(findings[0].value, "00-1A-2B-3C-4D-5E")
-        self.assertEqual(findings[1].value, "00:1A:2B:3C:4D:5F")
-
-    def test_phone_recognizer(self):
-        recognizer = PhoneRecognizer()
-        findings = recognizer.analyze("Call (123) 456-7890 or 987.654.3210.")
-        self.assertEqual(len(findings), 2)
-        
-        # Should not match numbers with too few digits
-        findings_invalid = recognizer.analyze("Number is 123456.")
-        self.assertEqual(len(findings_invalid), 0)
-
-    def test_credit_card_recognizer(self):
-        recognizer = CreditCardRecognizer()
-        
-        # Valid Luhn number
-        findings_valid = recognizer.analyze("Card: 4992-7398-716-9822")
-        self.assertEqual(len(findings_valid), 1)
-        self.assertEqual(findings_valid[0].value, "4992-7398-716-9822")
-        
-        # Invalid Luhn number
-        findings_invalid = recognizer.analyze("Card: 1234-5678-1234-5678")
-        self.assertEqual(len(findings_invalid), 0)
-```
-
----
-
-#### **2. (RECOMMENDED) Update `pyproject.toml`**
-
-*   **Action:** Overwrite the file `pyproject.toml` with the following content to make the packaging more robust.
+Add the new `phonenumbers` dependency.
 
 ```toml
 # FILE: pyproject.toml
@@ -77,7 +15,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "QuickScrub"
-version = "1.0.0"
+version = "1.1.0" # It's good practice to version bump after significant changes
 description = "A local, modular PII scrubber with a web UI."
 readme = "README.md"
 requires-python = ">=3.8"
@@ -85,7 +23,8 @@ dependencies = [
     "fastapi>=0.100.0",
     "uvicorn[standard]>=0.22.0",
     "pydantic>=2.0",
-    "python-multipart>=0.0.9"
+    "python-multipart>=0.0.9",
+    "phonenumbers>=8.13.0", # <-- ADD THIS LINE
 ]
 
 [project.optional-dependencies]
@@ -99,116 +38,286 @@ dev = [
 include = ["QuickScrub", "QuickScrub.*"]
 ```
 
----
+#### Step 2: Replace the content of `QuickScrub/core/engine.py`
 
-#### **3. (RECOMMENDED) Update Recognizers for Readability**
+This new version contains the improved conflict resolution logic.
 
-*   **Action:** Overwrite the five recognizer files with their expanded, more readable versions.
+```python
+# FILE: QuickScrub/core/engine.py
 
-*   **File 1: `QuickScrub/recognizers/ip_recognizer.py`**
-    ```python
-    import re
-    from typing import List
-    from .base import Recognizer, Finding
+from typing import List, Dict
+from ..models.data_models import ScrubTask, ScrubResult
+from ..recognizers.base import Finding
 
-    class IpRecognizer(Recognizer):
-        IP_REGEX = re.compile(r'\b(?:\d{1,3}\.){3}\d{1,3}\b')
+class ScrubberEngine:
+    def scrub(self, task: ScrubTask, findings: List[Finding]) -> ScrubResult:
+        final_findings = self._resolve_conflicts(findings, task.allow_list)
+        scrubbed_text, legend = self._scrub_text(task.text, final_findings)
+        return ScrubResult(scrubbed_text=scrubbed_text, legend=legend)
 
-        def __init__(self):
-            super().__init__(name="IP Address", tag="IP_ADDRESS")
-
-        def analyze(self, text: str) -> List[Finding]:
-            findings = []
-            for match in self.IP_REGEX.finditer(text):
-                ip = match.group(0)
-                if all(0 <= int(octet) <= 255 for octet in ip.split('.')):
-                    findings.append(Finding(match.start(), match.end(), ip, self.tag, self.name))
-            return findings
-    ```
-
-*   **File 2: `QuickScrub/recognizers/email_recognizer.py`**
-    ```python
-    import re
-    from typing import List
-    from .base import Recognizer, Finding
-
-    class EmailRecognizer(Recognizer):
-        EMAIL_REGEX = re.compile(r'\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b')
-
-        def __init__(self):
-            super().__init__(name="Email Address", tag="EMAIL")
-
-        def analyze(self, text: str) -> List[Finding]:
-            return [
-                Finding(m.start(), m.end(), m.group(0), self.tag, self.name)
-                for m in self.EMAIL_REGEX.finditer(text)
-            ]
-    ```
-
-*   **File 3: `QuickScrub/recognizers/phone_recognizer.py`**
-    ```python
-    import re
-    from typing import List
-    from .base import Recognizer, Finding
-
-    class PhoneRecognizer(Recognizer):
-        PHONE_REGEX = re.compile(r'\b\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b')
+    def _resolve_conflicts(self, findings: List[Finding], allow_list: List[str]) -> List[Finding]:
+        """
+        Resolves overlapping findings and filters out values from the allow list.
+        The strategy is to sort by start index and then by length (longest first).
+        This ensures that if a smaller finding is completely contained within a
+        larger one (e.g., an email inside a sensitive URL), the larger finding is kept.
+        """
+        allow_set = {item.lower() for item in allow_list}
+        allowed_findings = [f for f in findings if f.value.lower() not in allow_set]
         
-        def __init__(self):
-            super().__init__(name="Phone Number", tag="PHONE")
-        
-        def analyze(self, text: str) -> List[Finding]:
-            findings = []
-            for match in self.PHONE_REGEX.finditer(text):
-                if len(re.sub(r'\D', '', match.group(0))) >= 10:
-                    findings.append(Finding(match.start(), match.end(), match.group(0), self.tag, self.name))
-            return findings
-    ```
+        # Sort by start index, then by the negative of the end index (longest match first)
+        sorted_findings = sorted(allowed_findings, key=lambda f: (f.start, -f.end))
 
-*   **File 4: `QuickScrub/recognizers/mac_recognizer.py`**
-    ```python
-    import re
-    from typing import List
-    from .base import Recognizer, Finding
+        resolved: List[Finding] = []
+        if not sorted_findings:
+            return resolved
 
-    class MacAddressRecognizer(Recognizer):
-        MAC_REGEX = re.compile(r'\b(?:[0-9A-Fa-f]{2}[:-]){5}(?:[0-9A-Fa-f]{2})\b|\b(?:[0-9A-Fa-f]{4}\.){2}(?:[0-9A-Fa-f]{4})\b')
+        last_accepted_finding = sorted_findings[0]
+        for current_finding in sorted_findings[1:]:
+            # If the current finding starts before the last one has ended, it's either
+            # overlapping or fully nested. Because we sorted longest-first, we can
+            # safely discard it.
+            if current_finding.start < last_accepted_finding.end:
+                continue
+            
+            resolved.append(current_finding)
+            last_accepted_finding = current_finding
         
-        def __init__(self):
-            super().__init__(name="MAC Address", tag="MAC_ADDRESS")
-        
-        def analyze(self, text: str) -> List[Finding]:
-            return [
-                Finding(m.start(), m.end(), m.group(0), self.tag, self.name)
-                for m in self.MAC_REGEX.finditer(text)
-            ]
-    ```
+        # Add the very first finding to the list, as the loop starts from the second item.
+        resolved.insert(0, sorted_findings[0])
 
-*   **File 5: `QuickScrub/recognizers/credit_card_recognizer.py`**
-    ```python
-    import re
-    from typing import List
-    from .base import Recognizer, Finding
+        return resolved
 
-    class CreditCardRecognizer(Recognizer):
-        CC_REGEX = re.compile(r'\b(?:\d[ -]?){12,18}\d\b')
-        
-        def __init__(self):
-            super().__init__(name="Credit Card", tag="CREDIT_CARD")
-        
-        def _is_luhn_valid(self, number: str) -> bool:
+    def _scrub_text(self, text: str, findings: List[Finding]) -> (str, List[Dict[str, str]]):
+        scrubbed_text = text
+        placeholder_counts: Dict[str, int] = {}
+        value_to_placeholder_map: Dict[str, str] = {}
+        legend_map: Dict[str, Dict[str, str]] = {}
+
+        for finding in sorted(findings, key=lambda f: f.start):
+            if finding.value in value_to_placeholder_map:
+                continue
+            pii_type = finding.type
+            count = placeholder_counts.get(pii_type, 0) + 1
+            placeholder_counts[pii_type] = count
+            placeholder = f"[{pii_type}_{count}]"
+            value_to_placeholder_map[finding.value] = placeholder
+            legend_map[placeholder] = {"original": finding.value, "mock": placeholder, "type": pii_type}
+
+        # This replacement logic now operates on a clean, non-overlapping list of findings.
+        for finding in reversed(findings):
+            placeholder = value_to_placeholder_map[finding.value]
+            scrubbed_text = scrubbed_text[:finding.start] + placeholder + scrubbed_text[finding.end:]
+
+        legend = sorted(legend_map.values(), key=lambda item: int(item['mock'].split('_')[-1][:-1]))
+        return scrubbed_text, legend
+```
+
+#### Step 3: Replace the content of `QuickScrub/recognizers/phone_recognizer.py`
+
+This completely overhauls the recognizer to use the `phonenumbers` library.
+
+```python
+# FILE: QuickScrub/recognizers/phone_recognizer.py
+
+from typing import List
+import phonenumbers
+from .base import Recognizer, Finding
+
+class PhoneRecognizer(Recognizer):
+    """
+    Recognizes phone numbers using the 'phonenumbers' library.
+    This provides robust support for international formats.
+    """
+    def __init__(self):
+        super().__init__(name="Phone Number", tag="PHONE")
+
+    def analyze(self, text: str) -> List[Finding]:
+        findings = []
+        try:
+            # The region hint "US" helps resolve ambiguity for numbers without a
+            # country code, but the library can find numbers with any country code
+            # regardless of the hint.
+            for match in phonenumbers.PhoneNumberMatcher(text, "US"):
+                # We can add further validation if needed, for example:
+                if phonenumbers.is_valid_number(match.number):
+                    findings.append(Finding(
+                        start=match.start,
+                        end=match.end,
+                        value=match.raw_string,
+                        type=self.tag,
+                        recognizer_name=self.name
+                    ))
+        except Exception:
+            # The library can sometimes raise errors on malformed large inputs.
+            # We'll ignore these and return any findings we have so far.
+            pass
+        return findings
+```
+
+#### Step 4: Replace the content of `QuickScrub/recognizers/mac_address_recognizer.py`
+
+This version handles escaped colons.
+
+```python
+# FILE: QuickScrub/recognizers/mac_address_recognizer.py
+
+import re
+from typing import List
+from .base import Recognizer, Finding
+
+class MacAddressRecognizer(Recognizer):
+    # Regex updated to optionally handle a backslash before the separator: (?:\\?[:-])
+    MAC_REGEX = re.compile(
+        r'\b(?:[0-9A-Fa-f]{2}(?:\\?[:-])){5}(?:[0-9A-Fa-f]{2})\b|'
+        r'\b(?:[0-9A-Fa-f]{4}(?:\\?\.|-)){2}(?:[0-9A-Fa-f]{4})\b'
+    )
+
+    def __init__(self):
+        super().__init__(name="MAC Address", tag="MAC_ADDRESS")
+
+    def analyze(self, text: str) -> List[Finding]:
+        return [
+            Finding(m.start(), m.end(), m.group(0), self.tag, self.name)
+            for m in self.MAC_REGEX.finditer(text)
+        ]
+```
+
+#### Step 5: Replace the content of `QuickScrub/recognizers/ipv6_recognizer.py`
+
+This version also handles escaped colons.
+
+```python
+# FILE: QuickScrub/recognizers/ipv6_recognizer.py
+
+import re
+import ipaddress
+from typing import List
+from .base import Recognizer, Finding
+
+class Ipv6Recognizer(Recognizer):
+    """Recognizes IPv6 addresses using regex for candidate detection and the 'ipaddress' module for validation."""
+
+    # Regex updated to optionally handle a backslash before colons: (?:\\?:)
+    IPV6_REGEX = re.compile(r"""
+        \b (?:
+            (?: [0-9a-fA-F]{1,4} (?:\\?:) ){7} [0-9a-fA-F]{1,4}                    |
+            (?: [0-9a-fA-F]{1,4} (?:\\?:) ){1,7} (?:\\?:)                         |
+            (?: [0-9a-fA-F]{1,4} (?:\\?:) ){1,6} (?:\\?:) [0-9a-fA-F]{1,4}         |
+            (?: [0-9a-fA-F]{1,4} (?:\\?:) ){1,5} (?: (?:\\?:) [0-9a-fA-F]{1,4} ){1,2} |
+            (?: [0-9a-fA-F]{1,4} (?:\\?:) ){1,4} (?: (?:\\?:) [0-9a-fA-F]{1,4} ){1,3} |
+            (?: [0-9a-fA-F]{1,4} (?:\\?:) ){1,3} (?: (?:\\?:) [0-9a-fA-F]{1,4} ){1,4} |
+            (?: [0-9a-fA-F]{1,4} (?:\\?:) ){1,2} (?: (?:\\?:) [0-9a-fA-F]{1,4} ){1,5} |
+            [0-9a-fA-F]{1,4} (?:\\?:) (?: (?: (?:\\?:) [0-9a-fA-F]{1,4} ){1,6} )     |
+            (?:\\?:) (?: (?: (?:\\?:) [0-9a-fA-F]{1,4} ){1,7} | (?:\\?:) )            |
+            fe80 (?:\\?:) (?: (?:\\?:) [0-9a-fA-F]{0,4} ){0,4} % [0-9a-zA-Z]{1,}     |
+            (?:\\?:){2} (?: ffff (?: (?:\\?:) 0{1,4} )? (?:\\?:) )?                 |
+            (?: \d{1,3} \. ){3} \d{1,3}                                       |
+            (?: [0-9a-fA-F]{1,4} (?:\\?:) ){1,4} (?:\\?:)                         |
+            (?: \d{1,3} \. ){3} \d{1,3}
+        ) \b
+    """, re.VERBOSE | re.IGNORECASE)
+
+    def __init__(self):
+        super().__init__(name="IPv6 Address", tag="IPV6_ADDRESS")
+
+    def analyze(self, text: str) -> List[Finding]:
+        findings = []
+        for match in self.IPV6_REGEX.finditer(text):
+            # Clean the value of escape characters before validation
+            potential_ip = match.group(0).replace('\\', '')
             try:
-                digits = [int(d) for d in reversed(number)]
-                checksum = sum(digits[::2]) + sum(sum(divmod(d * 2, 10)) for d in digits[1::2])
-                return checksum % 10 == 0
-            except (ValueError, TypeError):
-                return False
-
-        def analyze(self, text: str) -> List[Finding]:
-            findings = []
-            for match in self.CC_REGEX.finditer(text):
-                cc_digits = re.sub(r'\D', '', match.group(0))
-                if 13 <= len(cc_digits) <= 19 and self._is_luhn_valid(cc_digits):
+                addr = ipaddress.ip_address(potential_ip)
+                if addr.version == 6:
+                    # Return the original, un-cleaned value in the Finding
                     findings.append(Finding(match.start(), match.end(), match.group(0), self.tag, self.name))
-            return findings
-    ```
+            except ValueError:
+                continue
+        return findings
+```
+
+#### Step 6: Replace the content of `QuickScrub/recognizers/secret_recognizer.py`
+
+This version has the improved prefix regex to fix the partial match bug.
+
+```python
+# FILE: QuickScrub/recognizers/secret_recognizer.py
+
+import re
+import math
+from typing import List, Set
+from .base import Recognizer, Finding
+
+class SecretRecognizer(Recognizer):
+    """
+    Recognizes secrets and keys using a multi-pass approach.
+    """
+    # Expanded list of high-confidence prefixes for services like Stripe, GitHub, and AWS.
+    # Note the specific lengths to reduce false positives.
+    PREFIX_REGEX = re.compile(
+        r'\b('
+        r'(?:sk|pk|rk)_(?:live|test)_[0-9a-zA-Z]{24}|'  # Stripe
+        r'ghp_[0-9a-zA-Z]{36}|'                         # GitHub
+        r'AKIA[0-9A-Z]{16}'                             # AWS Access Key ID
+        r')\b'
+    )
+
+    # Common variable names that might hold a secret
+    KEYWORD_REGEX = re.compile(r"""
+        \b(key|secret|token|password|auth|api_key|secret_key|auth_token)\b # Keywords
+        \s*[:=]\s*                                                       # Delimiter
+        ['"]?                                                            # Optional quote
+        ([a-zA-Z0-9\-_/+]{16,})                                           # The secret value itself
+        ['"]?                                                            # Optional quote
+    """, re.IGNORECASE | re.VERBOSE)
+
+    # General pattern for finding potential raw tokens (high entropy candidates)
+    GENERIC_REGEX = re.compile(r'\b[a-zA-Z0-9\-_/+]{20,64}\b')
+    ENTROPY_THRESHOLD = 3.5
+
+    def __init__(self):
+        super().__init__(name="API Keys & Secrets", tag="SECRET")
+
+    def _calculate_entropy(self, text: str) -> float:
+        """Calculates the Shannon entropy of a string."""
+        if not text:
+            return 0.0
+        char_counts = {c: text.count(c) for c in set(text)}
+        entropy = -sum((count / len(text)) * math.log2(count / len(text)) for count in char_counts.values())
+        return entropy
+
+    def analyze(self, text: str) -> List[Finding]:
+        findings = []
+        claimed_indices: Set[int] = set()
+
+        # Pass 1: High-confidence prefixes
+        for match in self.PREFIX_REGEX.finditer(text):
+            if not set(range(match.start(), match.end())).intersection(claimed_indices):
+                findings.append(Finding(match.start(), match.end(), match.group(0), self.tag, self.name))
+                claimed_indices.update(range(match.start(), match.end()))
+
+        # Pass 2: High-confidence keywords
+        for match in self.KEYWORD_REGEX.finditer(text):
+            secret_val = match.group(2)
+            start_pos = match.start(2)
+            end_pos = match.end(2)
+            if not set(range(start_pos, end_pos)).intersection(claimed_indices):
+                findings.append(Finding(start_pos, end_pos, secret_val, self.tag, self.name))
+                claimed_indices.update(range(start_pos, end_pos))
+
+        # Pass 3: Generic high-entropy strings
+        for match in self.GENERIC_REGEX.finditer(text):
+            if set(range(match.start(), match.end())).intersection(claimed_indices):
+                continue
+            
+            value = match.group(0)
+            has_digit = any(c.isdigit() for c in value)
+            has_lower = any(c.islower() for c in value)
+            has_upper = any(c.isupper() for c in value)
+
+            if (has_digit and has_lower and has_upper) or self._calculate_entropy(value) > self.ENTROPY_THRESHOLD:
+                findings.append(Finding(match.start(), match.end(), value, self.tag, self.name))
+                claimed_indices.update(range(match.start(), match.end()))
+        
+        return findings
+```
