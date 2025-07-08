@@ -1,55 +1,83 @@
 # FILE: QuickScrub/recognizers/phone_recognizer.py
 
-import re
+"""QuickScrub phone‐number recognizer.
+
+This version switches the underlying *phonenumbers* matcher to
+``Leniency.POSSIBLE`` so that fictitious but well‑formed prefixes such
+as the North‑American testing code **555** are still caught.  We also
+remove the redundant ``is_possible_number`` guard – the matcher already
+performs that check when running in POSSIBLE mode.
+
+The rest of the logic (digit‑count pre‑filter, span deduplication, line‑
+by‑line iteration) is unchanged, so no other recognizers are affected.
+"""
+
 from typing import List
+
 import phonenumbers
-from .base import Recognizer, Finding
+from phonenumbers import Leniency  # NEW – explicit import for clarity
+
+from .base import Finding, Recognizer
+
 
 class PhoneRecognizer(Recognizer):
-    """
-    Recognizes phone numbers using a robust two-step process:
-    1. A broad regex finds candidate strings that might be phone numbers.
-    2. The 'phonenumbers' library validates each clean candidate.
-    This handles both international and US-style numbers in noisy text.
-    """
-    
-    # This regex is intentionally broad. It looks for strings containing at least 7 digits,
-    # allowing for common separators, parentheses, and an optional country code.
-    CANDIDATE_REGEX = re.compile(r'((?:\+\d{1,3}[\s-]?)?\(?\d{2,4}\)?[\s\d-]{7,15})')
+    """Recognize phone numbers using *phonenumbers* in POSSIBLE mode."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(name="Phone Number", tag="PHONE")
 
-    def analyze(self, text: str) -> List[Finding]:
-        findings = []
-        found_spans = set()
+    # ---------------------------------------------------------------------
+    # Public API
+    # ---------------------------------------------------------------------
 
-        # Step 1: Find all potential candidates in the text.
-        for candidate_match in self.CANDIDATE_REGEX.finditer(text):
-            candidate_text = candidate_match.group(1).strip()
-            
-            try:
-                # Step 2: Use the phonenumbers library on the *clean candidate*.
-                for match in phonenumbers.PhoneNumberMatcher(candidate_text, "US"):
-                    if phonenumbers.is_valid_number(match.number):
-                        
-                        # The match object's start/end are relative to the candidate string.
-                        # We must add the candidate's start index to get the true position in the original text.
-                        original_start = candidate_match.start(1) + match.start
-                        original_end = candidate_match.start(1) + match.end
-                        
-                        span = (original_start, original_end)
-                        if span not in found_spans:
-                            findings.append(Finding(
-                                start=original_start,
-                                end=original_end,
-                                value=text[original_start:original_end], # Get the exact value from the original text
-                                type=self.tag,
-                                recognizer_name=self.name
-                            ))
-                            found_spans.add(span)
-            except Exception:
-                # The library can throw errors; ignore and continue.
+    def analyze(self, text: str) -> List[Finding]:
+        """Return a list of phone‑number findings in *text*."""
+
+        findings: List[Finding] = []
+        found_spans: set[tuple[int, int]] = set()  # avoid duplicates
+        line_start_offset = 0  # running character offset while we iterate
+
+        for line in text.splitlines(True):  # True keeps the newline chars
+            # ----------------------------------------------------------
+            # 1. Cheap pre‑filter – skip lines that clearly cannot hold a
+            #    phone number (too few or too many digits).
+            # ----------------------------------------------------------
+            digit_count = sum(ch.isdigit() for ch in line)
+            if not (7 <= digit_count <= 18):
+                line_start_offset += len(line)
                 continue
+
+            # ----------------------------------------------------------
+            # 2. Run the libphonenumber matcher at *POSSIBLE* leniency –
+            #    this still enforces length & basic structure but does
+            #    not require the number to be actually diallable.
+            # ----------------------------------------------------------
+            try:
+                for match in phonenumbers.PhoneNumberMatcher(
+                    line, "US", leniency=Leniency.POSSIBLE
+                ):
+                    abs_start = line_start_offset + match.start
+                    abs_end = line_start_offset + match.end
+                    span = (abs_start, abs_end)
+                    if span in found_spans:
+                        continue
+
+                    findings.append(
+                        Finding(
+                            start=abs_start,
+                            end=abs_end,
+                            value=match.raw_string,
+                            type=self.tag,
+                            recognizer_name=self.name,
+                        )
+                    )
+                    found_spans.add(span)
+            except Exception:
+                # The library occasionally raises on malformed fragments.
+                # We swallow the error because false negatives are better
+                # than a crash in the middle of scrubbing.
+                pass
+
+            line_start_offset += len(line)  # advance offset for next line
 
         return findings

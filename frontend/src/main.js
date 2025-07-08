@@ -39,6 +39,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('downloadSummaryButton').addEventListener('click', handleDownload);
 
+  document.getElementById('selectAllButton').addEventListener('click', () => {
+    PII_TYPES.forEach(t => {
+      document.getElementById(t.tag).checked = true;
+    });
+  });
+
+  document.getElementById('selectNoneButton').addEventListener('click', () => {
+    PII_TYPES.forEach(t => {
+      document.getElementById(t.tag).checked = false;
+    });
+  });
+
   // Synchronized Scrolling
   const scrubbedTextEl = document.getElementById('scrubbedText');
   let activeScroller = null;
@@ -84,7 +96,7 @@ async function handleScrub() {
   } catch (error) {
     alert(`An error occurred: ${error.message}`);
   } finally {
-    btn.disabled = false; btn.textContent = 'Scrub Text';
+    btn.disabled = false; btn.textContent = 'Scrub Text (Ctrl+Enter)';
   }
 }
 

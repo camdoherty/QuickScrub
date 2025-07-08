@@ -21,7 +21,13 @@
             
             <div class="io-group">
               <h2>PII Types to Scrub</h2>
-              <div id="pii-types-checkboxes" class="checkbox-grid"></div>
+              <div class="pii-controls-container">
+                <div class="pii-bulk-actions">
+                  <button id="selectAllButton" class="button-pii">Select All</button>
+                  <button id="selectNoneButton" class="button-pii">Select None</button>
+                </div>
+                <div id="pii-types-checkboxes" class="checkbox-grid"></div>
+              </div>
             </div>
 
             <div class="io-group">
@@ -29,7 +35,7 @@
               <textarea id="allowList" class="text-io-box" placeholder="Enter one value per line to ignore (e.g., 127.0.0.1)"></textarea>
             </div>
 
-            <button id="scrubButton">Scrub Text</button>
+            <button id="scrubButton">Scrub Text (Ctrl+Enter)</button>
           </div>
 
           <div class="output-section">

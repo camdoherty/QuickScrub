@@ -46,7 +46,8 @@ header {
 }
 
 h1 {
-  margin-bottom: 0.5rem; /* Reduce space below h1 */
+  margin-bottom: 0; /* Reduced space below h1 */
+  margin-top: 0;
 }
 
 header p {
@@ -85,6 +86,7 @@ header p {
 .output-section .legend-group {
   display: flex;
   flex-direction: column;
+  flex-grow: 1; /* Make the group take up available space */
 }
 
 /* --- Content Grouping --- */
@@ -115,12 +117,6 @@ h2 {
   font-size: 0.7rem;
   line-height: 1.5;
 
-  /* Underline effect */
-  
-  background-size: 100% 1.5em;
-  background-position: 0 0.75rem; /* Align with padding */
-
-
   /* --- CORE REQUIREMENTS --- */
   /* 1. Turn off word wrapping */
   white-space: pre;
@@ -133,25 +129,60 @@ h2 {
 /* --- Specific Box Heights --- */
 /* Enforces that the main input/output boxes are the same size */
 #inputText, #scrubbedText {
-  height: 350px;
+  height: 274px;
 }
       
 #allowList {
   height: 100px;
 }
 
-/* The legend box now has a fixed height */
+/* The legend box now has a fixed height to match the allow list */
 #legend {
-  height: 257px;
+  height: 274px;
 }
 
 /* --- Checkboxes & Buttons --- */
+
+.pii-controls-container {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.pii-bulk-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.button-pii {
+  padding: 0.5em 0.8em;
+  font-size: 0.9em;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  transition: background-color 0.25s;
+  text-align: center;
+  line-height: 1.2;
+  white-space: normal;
+  height: 3.5em;
+}
+
+.button-pii:hover {
+  background-color: var(--color-surface-muted);
+}
+
 .checkbox-grid {
   display: grid;
-  /* Increased min-width to prevent wrapping of long labels */
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  /* Reduced row-gap to decrease vertical space */
-  gap: 0.25rem 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.25rem 1rem;
+  height: 110px; /* Fixed height for the checkbox section */
+  overflow-y: auto; /* Allow scrolling if content overflows */
+  padding-right: 0.5rem; /* Space for scrollbar */
 }
 .checkbox-grid > div {
   display: flex;
@@ -160,7 +191,7 @@ h2 {
 }
 
 #scrubButton {
-  margin-top: var(--spacing-unit);
+  margin-top: auto; /* Pushes button to the bottom of the flex container */
   padding: 0.8em 1.2em;
   font-size: 1em;
   font-weight: 500;
@@ -180,7 +211,7 @@ h2 {
 }
 
 #downloadSummaryButton {
-  margin-top: var(--spacing-unit);
+  margin-top: auto; /* Pushes button to the bottom of the flex container */
   padding: 0.8em 1.2em;
   font-size: 1em;
   font-weight: 500;
@@ -206,6 +237,7 @@ h2 {
     position: relative;
     height: 100%; /* Needed for flexbox children to fill height */
 }
+
 
 /* Placeholder text styling */
 .text-io-box:empty::before {
@@ -241,8 +273,7 @@ h2 {
 
 #legend > div {
     /* Don't let original values break layout */
-    word-break: break-all;
-    white-space: pre-wrap; /* Allows wrapping of long legend values */
+    white-space: pre; /* Disallow wrapping of long legend values */
 }
 
 
@@ -250,7 +281,7 @@ h2 {
 .copy-button {
     position: absolute;
     top: 8px;
-    right: 8px;
+    right: 28px;
     padding: 0.3rem 0.6rem;
     font-size: 0.8rem;
     background-color: var(--color-surface-muted);
