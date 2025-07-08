@@ -8,35 +8,45 @@
   <body>
     <div id="app">
       <header>
-        <h1>QuickScrub V1</h1>
-        <p>A local, private PII Scrubber</p>
+        <h1><i>QuickScrub V1</i> </h1>
+        <p><i>Local, private PII Scrubber</i></p>
       </header>
       <main>
         <div class="container">
           <div class="input-section">
-            <h2>Input Text</h2>
-            <textarea id="inputText" placeholder="Paste your text here... (Ctrl+Enter to scrub)"></textarea>
+            <div class="io-group">
+              <h2>Input Text</h2>
+              <textarea id="inputText" class="text-io-box" placeholder="Paste your text here... (Ctrl+Enter to scrub)"></textarea>
+            </div>
             
-            <h2>PII Types to Scrub</h2>
-            <div id="pii-types-checkboxes" class="checkbox-grid"></div>
+            <div class="io-group">
+              <h2>PII Types to Scrub</h2>
+              <div id="pii-types-checkboxes" class="checkbox-grid"></div>
+            </div>
 
-            <h2>Allow List (optional)</h2>
-            <textarea id="allowList" placeholder="Enter one value per line to ignore (e.g., 127.0.0.1)"></textarea>
+            <div class="io-group">
+              <h2>Allow List (optional)</h2>
+              <textarea id="allowList" class="text-io-box" placeholder="Enter one value per line to ignore (e.g., 127.0.0.1)"></textarea>
+            </div>
 
             <button id="scrubButton">Scrub Text</button>
           </div>
 
           <div class="output-section">
-            <h2>Scrubbed Text</h2>
-            <div class="output-box-container">
-                <pre id="scrubbedText" class="output-box" data-placeholder="Scrubbed text will appear here."></pre>
-                <button class="copy-button" id="copyScrubbedText" data-copy-target="scrubbedText">Copy</button>
+            <div class="io-group">
+              <h2>Scrubbed Text</h2>
+              <div class="output-box-container">
+                  <div id="scrubbedText" class="text-io-box" data-placeholder="Scrubbed text will appear here."></div>
+                  <button class="copy-button" id="copyScrubbedText" data-copy-target="scrubbedText">Copy</button>
+              </div>
             </div>
 
-            <h2>Legend</h2>
-            <div class="output-box-container">
-                <div id="legend" class="output-box" data-placeholder="The legend for scrubbed items will appear here."></div>
-                <button class="copy-button" id="copyLegend" data-copy-target="legend">Copy</button>
+            <div class="io-group legend-group">
+              <h2>Legend</h2>
+              <div class="output-box-container">
+                  <div id="legend" class="text-io-box" data-placeholder="The legend for scrubbed items will appear here."></div>
+                  <button class="copy-button" id="copyLegend" data-copy-target="legend">Copy</button>
+              </div>
             </div>
           </div>
         </div>
