@@ -1,4 +1,4 @@
-# Implementation instructions & updated code:
+# Implementation instructions
 
 Follow these steps to implement all the fixes.
 
