@@ -29,6 +29,24 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.copy-button').forEach(button => {
     button.addEventListener('click', () => handleCopy(button));
   });
+
+  // Synchronized Scrolling
+  const scrubbedTextEl = document.getElementById('scrubbedText');
+  let activeScroller = null;
+
+  const setActive = (el) => activeScroller = el;
+  const syncScroll = (from, to) => {
+    if (activeScroller === from) {
+      to.scrollTop = from.scrollTop;
+      to.scrollLeft = from.scrollLeft;
+    }
+  };
+
+  inputTextEl.addEventListener('mouseenter', () => setActive(inputTextEl));
+  scrubbedTextEl.addEventListener('mouseenter', () => setActive(scrubbedTextEl));
+
+  inputTextEl.addEventListener('scroll', () => syncScroll(inputTextEl, scrubbedTextEl));
+  scrubbedTextEl.addEventListener('scroll', () => syncScroll(scrubbedTextEl, inputTextEl));
 });
 
 async function handleScrub() {
@@ -67,11 +85,26 @@ function renderLegend(legendData) {
   legendData.forEach(i => {['type', 'mock', 'original'].forEach(k => { const d = document.createElement('div'); d.textContent = i[k]; el.appendChild(d); }); });
 }
 
+function getLegendTextForClipboard(element) {
+  const children = Array.from(element.children);
+  let text = '';
+  const headers = children.slice(0, 3).map(c => c.textContent);
+  text += headers.join('\t') + '\n';
+
+  const rows = children.slice(3);
+  for (let i = 0; i < rows.length; i += 3) {
+    const row = rows.slice(i, i + 3).map(c => c.textContent);
+    text += row.join('\t') + '\n';
+  }
+  return text.trim();
+}
+
 function handleCopy(button) {
   const targetId = button.dataset.copyTarget;
   const element = document.getElementById(targetId);
   if (navigator.clipboard && element) {
-    navigator.clipboard.writeText(element.innerText).then(() => {
+    const textToCopy = targetId === 'legend' ? getLegendTextForClipboard(element) : element.innerText;
+    navigator.clipboard.writeText(textToCopy).then(() => {
       const originalText = button.textContent;
       button.textContent = 'Copied!';
       setTimeout(() => {

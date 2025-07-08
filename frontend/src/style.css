@@ -113,6 +113,13 @@ h2 {
   color: var(--color-text);
   font-family: "SF Mono", "Fira Code", Consolas, "Courier New", monospace;
   font-size: 0.7rem;
+  line-height: 1.5;
+
+  /* Underline effect */
+  
+  background-size: 100% 1.5em;
+  background-position: 0 0.75rem; /* Align with padding */
+
 
   /* --- CORE REQUIREMENTS --- */
   /* 1. Turn off word wrapping */
